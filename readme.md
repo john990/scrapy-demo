@@ -1,4 +1,4 @@
-spider test for yue.fm
+spider for yue.fm
 
 ## HOW TO USE
  * start selenium-server-standalone-2.39.0.jar (java -jar)
