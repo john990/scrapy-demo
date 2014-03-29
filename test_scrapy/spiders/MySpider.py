@@ -4,8 +4,9 @@ import os
 from scrapy.selector import Selector
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
-from scrapy.http import Request
+from scrapy.http import Request, HtmlResponse
 from selenium import selenium
+from selenium import webdriver
 
 from test_scrapy.items import TestScrapyItem
 
@@ -31,8 +32,9 @@ class MySpider(CrawlSpider):
     def __init__(self):
         CrawlSpider.__init__(self)
         self.verification_errors = []
-        self.selenium = selenium("localhost", 4444, "*firefox",  "http://yue.fm/")
-        self.selenium.start()
+        self.selenium = selenium("localhost", 4444, "*firefox", "http://yue.fm/")
+        self.selenium.start(driver=webdriver.Chrome())
+        # self.driver = webdriver.Chrome()
 
     def __del__(self):
         self.selenium.stop()
@@ -42,12 +44,24 @@ class MySpider(CrawlSpider):
     def parse(self, response):
         print 'loading url:' + response.url
 
-        s = self.selenium
-        s.open(response.url)
-        s.wait_for_page_to_load("30000")
+        # print response.body
+        # driver = self.driver
+        # driver.get(response.url)
+        # next_url = driver.find_element_by_xpath("//div[@class='next']/a[@id='next']").text()
+        # print next_url
+        # yield Request(next_url)
+
+        sel = self.selenium
+        sel.open(response.url)
+        sel.wait_for_page_to_load("2000")
         import time
 
-        time.sleep(2.5)
+        time.sleep(1.5)
+
+        response = response.replace(body=sel.get_eval(\
+            "selenium.browserbot.getCurrentWindow().document.getElementsByTagName('html')[0].innerHTML"))
+
+        s = Selector(response)
 
         title = s.xpath("//div[@class='article']/h1[@class='title'][1]/text()").extract()[0]
         author = s.xpath("//div[@class='article']/div[@class='body']/p[1]/b/text()").extract()[0]
@@ -55,7 +69,7 @@ class MySpider(CrawlSpider):
 
         self.write_content(title, content)
 
-        next_url = s.xpath("//div[@class='next']/a[@id='next']/@href").extract()
+        next_url = "http://yue.fm" + s.xpath("//div[@class='next']/a[@id='next']/@href").extract()[0]
         print next_url
         yield Request(next_url)
 
